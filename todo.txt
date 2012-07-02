@@ -1,4 +1,3 @@
-- implement block pushing
 - implement gravity application
 - implement graphics 
 - implement ui
