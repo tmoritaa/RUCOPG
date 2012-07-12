@@ -6,20 +6,62 @@ class Field(object):
         self.width = width
         self.height = height
         self.depth = depth
-        self._initField()
+        self.field = self._initField(self.width, self.height, self.depth)
         self.gravMatrix = array([0, 1, 0])
         self.ROT_XPOS = array([[1, 0, 0], [0, 0, -1], [0, 1, 0]])
         self.ROT_XNEG = array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
         self.ROT_ZPOS = array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
         self.ROT_ZNEG = array([[0, 1, 0], [-1, 0, 0], [0, 0, 1]])
 
-    def _initField(self):
-        self.field = []
-        self.field = [[[0 for z in range(0, self.width)] \
-                for y in range(0, self.height)] \
-                for x in range(0, self.depth)]
+    def _initField(self, width, height, depth):
+        field = [[[0 for z in range(0, width)] \
+                for y in range(0, height)] \
+                for x in range(0, depth)]
+        return field
 
     def rotate(self, s_dir):
+        if (s_dir == "back"):
+            self._rotateXAxis(self.ROT_XNEG)
+        elif (s_dir == "forward"):
+            self._rotateXAxis(self.ROT_XPOS)
+        elif (s_dir == "right"):
+            self._rotateZAxis(self.ROT_ZPOS)
+        elif (s_dir == "left"):
+            self._rotateZAxis(self.ROT_ZNEG)
+
+    def _rotateXAxis(self, rotMat):
+        newHeight = self.depth
+        newDepth = self.height
+        newField = self._initField(self.width, newHeight, newDepth)
+
+        midY = int(floor(float(self.height) / 2))
+        midZ = int(floor(float(self.depth) / 2)) 
+
+        for z in range(0, self.depth):
+            relZ = z - midZ 
+            for y in range(0, self.height):
+                relY = y - midY 
+                for x in range(0, self.width):
+                    sqVec = array([x, relY, relZ])
+                    sqVec = dot(sqVec, rotMat)
+                    newMidHeight = int(floor(float(newHeight) / 2))
+                    newMidDepth = int(floor(float(newDepth) / 2))
+                    newX = sqVec[0]
+                    newY = sqVec[1] + newMidHeight
+                    newZ = sqVec[2] + newMidDepth
+                    if newY >= midY:
+                        newY -= 1
+                    if newZ >= midZ:
+                        newZ -= 1
+                    newField[newZ][newY][newX] = self.field[z][y][x]
+
+        self.field = []
+        self.field = newField
+        self.height = newHeight
+        self.depth = newDepth
+
+    # TODO: remove
+    def lolrotate(self, s_dir):
         if (s_dir == "left"):
             self.gravMatrix = dot(self.gravMatrix, self.ROT_XNEG)
         elif (s_dir == "right"):
@@ -31,6 +73,7 @@ class Field(object):
         else:
             print "rotation function given invalid direction"
 
+    # TODO: rewrite
     def pushBlock(self, plane, loc):
         if plane == "z" or plane == "-z":
             if loc >= self.width * self.height:
@@ -104,6 +147,31 @@ class Field(object):
                 self.field[z][y][x] = 0
             z += zVec
 
+    def applyGravity(self):
+        if self.gravMatrix[0] != 0:
+            self._applyGravityXPlane(self.gravMatrix[0])
+        elif self.gravMatrix[1] != 0:
+            self._applyGravityYPlane(self.gravMatrix[1])
+        elif self.gravMatrix[2] != 0:
+            self._applyGravityZPlane(self.gravMatrix[2])
+        else:
+            print "applyGravity is invalid"
+        
+    # TODO: test
+    def _applyGravityXPlane(self, direction):
+        for z in range(0, self.depth):
+            for y in range(0, self.height):
+                curIdx = (self.width - 1) if (direction == 1) else 0
+                prevOpenList = []
+                while curIdx < self.width and curIdx >= 0:
+                    if self.field[z][y][curIdx] != 0 and len(prevOpenList) != 0:
+                        prevOpenIdx = prevOpenList.pop(0)
+                        self.field[z][y][prevOpenIdx] = self.field[z][y][curIdx]
+                        self.field[z][y][curIdx] = 0
+                    if self.field[z][y][curIdx] == 0:
+                        prevOpenList.append(curIdx)
+                    curIdx -= direction
+
     def loadFile(self, fileName):
         f = open(fileName, 'r')
         s = f.readline().strip()
@@ -112,7 +180,7 @@ class Field(object):
         self.height = int(s)
         s = f.readline().strip()
         self.depth = int(s)
-        self._initField()
+        self.field = self._initField(self.width, self.height, self.depth)
         i = 0
         while i < (self.width * self.height * self.depth):
             s = f.readline().strip()
@@ -134,7 +202,7 @@ class Field(object):
 
 if __name__ == "__main__":
     field = Field(4, 3, 2)
-    field.loadFile("fieldInit.txt")
+    field.loadFile("fieldInit2.txt")
     field.formatPrint()
-    field.pushBlock("y", 3)
+    field.rotate("forward")
     field.formatPrint()
