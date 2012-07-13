@@ -7,7 +7,6 @@ class Field(object):
         self.height = height
         self.depth = depth
         self.field = self._initField(self.width, self.height, self.depth)
-        self.gravMatrix = array([0, 1, 0])
         self.ROT_XPOS = array([[1, 0, 0], [0, 0, -1], [0, 1, 0]])
         self.ROT_XNEG = array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
         self.ROT_ZPOS = array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
@@ -25,55 +24,80 @@ class Field(object):
         elif (s_dir == "forward"):
             self._rotateXAxis(self.ROT_XPOS)
         elif (s_dir == "right"):
-            self._rotateZAxis(self.ROT_ZPOS)
-        elif (s_dir == "left"):
             self._rotateZAxis(self.ROT_ZNEG)
+        elif (s_dir == "left"):
+            self._rotateZAxis(self.ROT_ZPOS)
 
     def _rotateXAxis(self, rotMat):
         newHeight = self.depth
         newDepth = self.height
         newField = self._initField(self.width, newHeight, newDepth)
 
-        midY = int(floor(float(self.height) / 2))
-        midZ = int(floor(float(self.depth) / 2)) 
+        midY = self.height / 2
+        midZ = self.depth / 2 
 
         for z in range(0, self.depth):
-            relZ = z - midZ 
+            relZ = float(z - midZ)
+            if self.depth % 2 == 0:
+                relZ += 0.5
             for y in range(0, self.height):
-                relY = y - midY 
+                relY = float(y - midY)
+                if self.height % 2 == 0:
+                    relY += 0.5
                 for x in range(0, self.width):
                     sqVec = array([x, relY, relZ])
                     sqVec = dot(sqVec, rotMat)
-                    newMidHeight = int(floor(float(newHeight) / 2))
-                    newMidDepth = int(floor(float(newDepth) / 2))
+                    newMidHeight = newHeight / 2
+                    newMidDepth = newDepth / 2
                     newX = sqVec[0]
                     newY = sqVec[1] + newMidHeight
                     newZ = sqVec[2] + newMidDepth
-                    if newY >= midY:
-                        newY -= 1
-                    if newZ >= midZ:
-                        newZ -= 1
-                    newField[newZ][newY][newX] = self.field[z][y][x]
-
+                    if newHeight % 2 == 0:
+                        newY -= 0.5
+                    if newDepth % 2 == 0:
+                        newZ -= 0.5
+                    newField[int(newZ)][int(newY)][int(newX)] = \
+                        self.field[z][y][x]
         self.field = []
         self.field = newField
         self.height = newHeight
         self.depth = newDepth
 
-    # TODO: remove
-    def lolrotate(self, s_dir):
-        if (s_dir == "left"):
-            self.gravMatrix = dot(self.gravMatrix, self.ROT_XNEG)
-        elif (s_dir == "right"):
-            self.gravMatrix = dot(self.gravMatrix, self.ROT_XPOS)
-        elif (s_dir == "forward"):
-            self.gravMatrix = dot(self.gravMatrix, self.ROT_ZPOS)
-        elif (s_dir == "back"):
-            self.gravMatrix = dot(self.gravMatrix, self.ROT_ZNEG)
-        else:
-            print "rotation function given invalid direction"
+    def _rotateZAxis(self, rotMat):
+        newWidth = self.height
+        newHeight = self.width
+        newField = self._initField(newWidth, newHeight, self.depth)
 
-    # TODO: rewrite
+        midX = self.width/ 2
+        midY = self.height / 2 
+
+        for z in range(0, self.depth):
+            for y in range(0, self.height):
+                relY = float(y - midY)
+                if self.height % 2 == 0:
+                    relY += 0.5
+                for x in range(0, self.width):
+                    relX = float(x - midX)
+                    if self.width % 2 == 0:
+                        relX += 0.5
+                    sqVec = array([relX, relY, z])
+                    sqVec = dot(sqVec, rotMat)
+                    newMidWidth = newWidth / 2
+                    newMidHeight = newHeight / 2
+                    newX = sqVec[0] + newMidWidth
+                    newY = sqVec[1] + newMidHeight
+                    newZ = sqVec[2] 
+                    if newWidth % 2 == 0:
+                        newX -= 0.5
+                    if newHeight % 2 == 0:
+                        newY -= 0.5
+                    newField[int(newZ)][int(newY)][int(newX)] = \
+                        self.field[z][y][x]
+        self.field = []
+        self.field = newField
+        self.width= newWidth
+        self.height = newHeight
+
     def pushBlock(self, plane, loc):
         if plane == "z" or plane == "-z":
             if loc >= self.width * self.height:
@@ -91,14 +115,6 @@ class Field(object):
             y = loc / self.depth
             xVec = 1 if (plane == "x") else -1
             self._pushXPlaneBlock(xVec, y, z)
-        elif plane == "y" or plane == "-y":
-            if loc >= self.depth * self.width:
-                print "Invalid location index"
-                return
-            x = loc % self.width
-            z = loc / self.width
-            yVec = 1 if (plane == "y") else -1
-            self._pushYPlaneBlock(yVec, x, z)
         else:
             print "Invalid plane location"
 
@@ -117,21 +133,6 @@ class Field(object):
                 self.field[z][y][x] = 0
             x += xVec
 
-    def _pushYPlaneBlock(self, yVec, x, z):
-        y = (self.height - 1) if (yVec == 1) else 0
-
-        # no block to push
-        if self.field[z][y][x] == 0:
-            return
-
-        y = (self.height - 2) if (yVec == -1) else 1
-        
-        while (y >= 0 and y < self.height):
-            if self.field[z][y][x] != 0 and self.field[z][y-yVec][x] == 0:
-                self.field[z][y-yVec][x] = self.field[z][y][x]
-                self.field[z][y][x] = 0
-            y += yVec
-
     def _pushZPlaneBlock(self, zVec, x, y):
         z = (self.depth - 1) if (zVec == 1) else 0
 
@@ -148,29 +149,18 @@ class Field(object):
             z += zVec
 
     def applyGravity(self):
-        if self.gravMatrix[0] != 0:
-            self._applyGravityXPlane(self.gravMatrix[0])
-        elif self.gravMatrix[1] != 0:
-            self._applyGravityYPlane(self.gravMatrix[1])
-        elif self.gravMatrix[2] != 0:
-            self._applyGravityZPlane(self.gravMatrix[2])
-        else:
-            print "applyGravity is invalid"
-        
-    # TODO: test
-    def _applyGravityXPlane(self, direction):
         for z in range(0, self.depth):
-            for y in range(0, self.height):
-                curIdx = (self.width - 1) if (direction == 1) else 0
+            for x in range(0, self.width):
+                curIdx = self.height - 1
                 prevOpenList = []
-                while curIdx < self.width and curIdx >= 0:
-                    if self.field[z][y][curIdx] != 0 and len(prevOpenList) != 0:
+                while curIdx < self.height and curIdx >= 0:
+                    if self.field[z][curIdx][x] != 0 and len(prevOpenList) != 0:
                         prevOpenIdx = prevOpenList.pop(0)
-                        self.field[z][y][prevOpenIdx] = self.field[z][y][curIdx]
-                        self.field[z][y][curIdx] = 0
-                    if self.field[z][y][curIdx] == 0:
+                        self.field[z][prevOpenIdx][x] = self.field[z][curIdx][x]
+                        self.field[z][curIdx][x] = 0
+                    if self.field[z][curIdx][x] == 0:
                         prevOpenList.append(curIdx)
-                    curIdx -= direction
+                    curIdx -= 1
 
     def loadFile(self, fileName):
         f = open(fileName, 'r')
@@ -202,7 +192,7 @@ class Field(object):
 
 if __name__ == "__main__":
     field = Field(4, 3, 2)
-    field.loadFile("fieldInit2.txt")
+    field.loadFile("fieldInit.txt")
     field.formatPrint()
-    field.rotate("forward")
+    field.applyGravity()
     field.formatPrint()
