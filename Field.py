@@ -194,5 +194,7 @@ if __name__ == "__main__":
     field = Field(4, 3, 2)
     field.loadFile("fieldInit.txt")
     field.formatPrint()
+    field.rotate("forward")
+    field.formatPrint()
     field.applyGravity()
     field.formatPrint()
