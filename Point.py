@@ -9,7 +9,7 @@ class Point(object):
 
     def projectTo2D(self, camera, fieldDepth):
         # currently does not take into account rotation
-        zRatio = 1.0 / (fieldDepth + 1.0)
+        zRatio = 1.0 / (fieldDepth + 2.0)
         factor = 1.0 - zRatio * (fieldDepth - math.fabs(self.z))
         dx = float(self.x) * factor + camera.x
         dy = float(self.y) * factor + camera.y
