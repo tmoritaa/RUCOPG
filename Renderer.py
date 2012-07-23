@@ -13,23 +13,18 @@ class Renderer(object):
 
     def draw(self):
         self.screen.fill((0, 0, 0)) 
-        #for point in self.points:
-        #planePoint = point.projectTo2D(self.cameraPoint, self.field.depth)
-        #    pygame.draw.line(self.screen, (255,255,255), \
-        #            planePoint, (planePoint[0]+1, planePoint[1]))
         for face in self.faces:
             pointList = []
-            for i in range(0, 4):
+            for i in range(4):
                 point = self.points[face[i]]
                 point = point.projectTo2D(self.cameraPoint, self.field.depth)
                 pointList.append(point)
-            for i in range(0, 4):
+            for i in range(4):
                 j = (i + 1) % 4
                 pygame.draw.line(self.screen, (255,255,255), \
                         pointList[i], pointList[j])
         pygame.display.flip()
 
-    # mapping field array to world coordinates does not work
     def _generatePoints(self):
         retPoints = []
         width = self.screen.get_width()
@@ -38,14 +33,14 @@ class Renderer(object):
         hMargin = height / 8
         wCell = (width - wMargin * 2) / self.field.width
         hCell = (height- hMargin * 2) / self.field.height
-        for z in range(0, self.field.depth):
-            for y in range(0, self.field.height):
-                for x in range(0, self.field.width):
+        for z in range(self.field.depth):
+            for y in range(self.field.height):
+                for x in range(self.field.width):
                     if (self.field.field[z][y][x] == 0):
                         continue
-                    for pz in range(0, 2):
-                        for py in range(0, 2):
-                            for px in range(0, 2):
+                    for pz in range(2):
+                        for py in range(2):
+                            for px in range(2):
                                 xLoc = (x + px) * wCell + wMargin \
                                         - self.cameraPoint.x
                                 yLoc = (y + py) * hCell + hMargin \
