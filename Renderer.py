@@ -1,6 +1,11 @@
 import Field, pygame, sys
 from Point import *
 
+class Face(object):
+    def __init__(self, _points, _leastDepth):
+        self.pointIds = _points
+        self.leastDepth = _leastDepth
+
 class Renderer(object):
     def __init__(self, width = 640, height = 480):
         pygame.init()
@@ -14,14 +19,17 @@ class Renderer(object):
     def draw(self):
         self.screen.fill((0, 0, 0)) 
         for face in self.faces:
+            print "depth", face.leastDepth
             pointList = []
-            for i in range(4):
-                point = self.points[face[i]]
+            for num in face.pointIds:
+                point = self.points[num]
                 point = point.projectTo2D(self.cameraPoint, self.field.depth)
                 pointList.append(point)
+            pygame.draw.polygon(self.screen, (255, 255, 255), \
+                    (pointList[0], pointList[1], pointList[2], pointList[3]))
             for i in range(4):
                 j = (i + 1) % 4
-                pygame.draw.line(self.screen, (255,255,255), \
+                pygame.draw.line(self.screen, (255,0,0), \
                         pointList[i], pointList[j])
         pygame.display.flip()
 
@@ -53,14 +61,22 @@ class Renderer(object):
     # self.points must be already generated
     def _generateFaces(self):
         faceList = []
+        additions = [(0, 1, 3, 2), (0, 1, 5, 4), (0, 2, 6, 4), \
+                                (4, 5, 7, 6), (1, 3, 7, 5), (2, 3, 7, 6)]
         for i in range(0, len(self.points), 8):
-            faceList.append((i, i+1, i+3, i+2))
-            faceList.append((i, i+1, i+5, i+4))
-            faceList.append((i, i+2, i+6, i+4))
-            faceList.append((i+4, i+5, i+7, i+6))
-            faceList.append((i+1, i+3, i+7, i+5))
-            faceList.append((i+2, i+3, i+7, i+6))
+            for tup in additions:
+                tmpTup = (i+tup[0], i+tup[1], i+tup[2], i+tup[3])
+                depth = self._findLowestDepth(tmpTup)
+                face = Face(tmpTup, depth)
+                faceList.append(face)
         return faceList
+
+    def _findLowestDepth(self, pointIds):
+        leastDepth = 9999
+        for i in pointIds:
+            if self.points[i].z < leastDepth:
+                leastDepth = self.points[i].z
+        return leastDepth
 
 if __name__ == "__main__":
     renderer = Renderer()
