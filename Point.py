@@ -13,5 +13,4 @@ class Point(object):
         factor = 1.0 - zRatio * (fieldDepth - math.fabs(self.z))
         dx = float(self.x) * factor + camera.x
         dy = float(self.y) * factor + camera.y
-        print "dx, dy", dx, dy
         return (dx, dy)
