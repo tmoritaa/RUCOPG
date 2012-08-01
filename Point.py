@@ -5,7 +5,6 @@ class Point(object):
         self.x = x
         self.y = y
         self.z = z
-        self.neighbours = []
 
     def projectTo2D(self, camera, fieldDepth):
         # currently does not take into account rotation
